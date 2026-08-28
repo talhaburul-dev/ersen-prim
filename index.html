@@ -18,72 +18,54 @@
     h1{font-size:23px;margin:6px 0 3px}.sub{margin:0 0 18px;color:var(--muted);font-size:13px}
     .date-row{display:flex;gap:10px;align-items:center;margin-bottom:14px}
     .date-pill{flex:1;background:var(--card);border:1px solid var(--line);border-radius:17px;padding:13px;text-align:center;font-weight:800}
-    button{font:inherit}
-    .icon{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:15px;padding:11px 14px;font-size:20px}
+    button{font:inherit}.icon{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:15px;padding:11px 14px;font-size:20px}
     .total-card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:22px;padding:19px;margin-bottom:14px}
-    .label{color:var(--muted);font-size:12px}.total{font-size:38px;font-weight:900;margin-top:4px}
-    .count{margin-top:6px;color:var(--muted);font-size:13px}
-    .prime-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 18px}
-    .prime-btn{border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:20px;padding:21px 10px;font-size:24px;font-weight:900}
-    .prime-btn:active{transform:scale(.98);background:#292e37}
-    .section-head{display:flex;justify-content:space-between;align-items:center;margin:18px 2px 10px}
-    .section-head b{font-size:15px}.section-head span{font-size:12px;color:var(--muted)}
+    .label{color:var(--muted);font-size:12px}.total{font-size:38px;font-weight:900;margin-top:4px}.count{margin-top:6px;color:var(--muted);font-size:13px}
+    .choose-title{font-size:13px;color:var(--muted);margin:16px 2px 9px}
+    .prime-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 18px}
+    .prime-btn{min-height:76px;border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:18px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+    .prime-btn .care{font-size:15px;font-weight:800;line-height:1.15;text-align:center}.prime-btn .price{font-size:20px;font-weight:900}.prime-btn:active{transform:scale(.98);background:#292e37}.prime-btn:disabled{opacity:.45}
+    .section-head{display:flex;justify-content:space-between;align-items:center;margin:18px 2px 10px}.section-head b{font-size:15px}.section-head span{font-size:12px;color:var(--muted)}
     .item{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px 12px;margin-bottom:9px}
-    .num{font-weight:800;color:#b9c1cc}.amt{font-size:18px;font-weight:900}.time{font-size:12px;color:var(--muted);margin-top:2px}
-    .del{border:0;background:transparent;color:var(--danger);font-size:20px;padding:6px 4px}
-    .empty{color:var(--muted);font-size:14px;background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:18px;text-align:center}
+    .num{font-weight:800;color:#b9c1cc}.care-name{font-size:15px;font-weight:800}.item-meta{display:flex;gap:8px;align-items:center;margin-top:3px}.amt{font-size:14px;font-weight:900}.time{font-size:12px;color:var(--muted)}
+    .del{border:0;background:transparent;color:var(--danger);font-size:20px;padding:6px 4px}.empty{color:var(--muted);font-size:14px;background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:18px;text-align:center}
     .footer-note{margin:18px 4px 0;color:var(--muted);font-size:11px;line-height:1.5;text-align:center}
   </style>
 </head>
 <body>
 <div class="app">
-  <h1>Ersen Prim</h1>
-  <p class="sub">Günlük prim takibi</p>
-
-  <div class="date-row">
-    <button class="icon" id="prev">‹</button>
-    <div class="date-pill" id="date"></div>
-    <button class="icon" id="next">›</button>
-  </div>
-
-  <div class="total-card">
-    <div class="label">BUGÜNÜN TOPLAM PRİMİ</div>
-    <div class="total" id="total">0 ₺</div>
-    <div class="count"><span id="count">0</span> / 10 bakım</div>
-  </div>
-
+  <h1>Ersen Prim</h1><p class="sub">Günlük bakım & prim takibi</p>
+  <div class="date-row"><button class="icon" id="prev">‹</button><div class="date-pill" id="date"></div><button class="icon" id="next">›</button></div>
+  <div class="total-card"><div class="label">BUGÜNÜN TOPLAM PRİMİ</div><div class="total" id="total">0 ₺</div><div class="count"><span id="count">0</span> / 10 bakım</div></div>
+  <div class="choose-title">Bakım seç</div>
   <div class="prime-grid">
-    <button class="prime-btn" data-prime="300">+300 ₺</button>
-    <button class="prime-btn" data-prime="405">+405 ₺</button>
-    <button class="prime-btn" data-prime="540">+540 ₺</button>
-    <button class="prime-btn" data-prime="745">+745 ₺</button>
+    <button class="prime-btn" data-name="Pir-u Pak" data-prime="300"><span class="care">Pir-u Pak</span><span class="price">+300 ₺</span></button>
+    <button class="prime-btn" data-name="Keyf-i Hamam" data-prime="405"><span class="care">Keyf-i Hamam</span><span class="price">+405 ₺</span></button>
+    <button class="prime-btn" data-name="Zevk-i Sefa" data-prime="540"><span class="care">Zevk-i Sefa</span><span class="price">+540 ₺</span></button>
+    <button class="prime-btn" data-name="Ab-ı Hayat" data-prime="745"><span class="care">Ab-ı Hayat</span><span class="price">+745 ₺</span></button>
+    <button class="prime-btn" data-name="Aromaterapi" data-prime="325"><span class="care">Aromaterapi</span><span class="price">+325 ₺</span></button>
+    <button class="prime-btn" data-name="Antistress" data-prime="325"><span class="care">Antistress</span><span class="price">+325 ₺</span></button>
+    <button class="prime-btn" data-name="Ayak Masajı" data-prime="225"><span class="care">Ayak Masajı</span><span class="price">+225 ₺</span></button>
+    <button class="prime-btn" data-name="Sırt Masajı" data-prime="225"><span class="care">Sırt Masajı</span><span class="price">+225 ₺</span></button>
   </div>
-
-  <div class="section-head">
-    <b>Eklenen primler</b>
-    <span id="remain">10 slot boş</span>
-  </div>
-  <div id="list"></div>
-
-  <div class="footer-note">Her güne en fazla 10 prim kaydı eklenebilir. Kayıtlar bu iPhone'da saklanır.</div>
+  <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">10 slot boş</span></div><div id="list"></div>
+  <div class="footer-note">Her güne en fazla 10 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
 </div>
-
 <script>
 const KEY="ersenPrimSimpleV2";
+const legacyNames={300:"Pir-u Pak",405:"Keyf-i Hamam",540:"Zevk-i Sefa",745:"Ab-ı Hayat"};
 let records=JSON.parse(localStorage.getItem(KEY)||"{}");
-let selected=new Date(); selected.setHours(12,0,0,0);
-function keyOf(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
-function money(n){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:0}).format(n)+" ₺";}
-function save(){localStorage.setItem(KEY,JSON.stringify(records));render();}
-function current(){return records[keyOf(selected)]||[];}
-function addPrime(amount){const arr=current();if(arr.length>=10){alert("Bu gün için 10 bakım sınırına ulaşıldı.");return;}const now=new Date();arr.push({amount:Number(amount),time:now.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})});records[keyOf(selected)]=arr;save();}
-function removePrime(i){const k=keyOf(selected),arr=current();arr.splice(i,1);if(arr.length) records[k]=arr;else delete records[k];save();}
-function render(){const arr=current();const total=arr.reduce((s,x)=>s+Number(x.amount||0),0);document.getElementById("date").textContent=selected.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",weekday:"short"});document.getElementById("total").textContent=money(total);document.getElementById("count").textContent=arr.length;document.getElementById("remain").textContent=(10-arr.length)+" slot boş";document.querySelectorAll(".prime-btn").forEach(b=>b.disabled=arr.length>=10);const list=document.getElementById("list");list.innerHTML="";if(!arr.length){list.innerHTML='<div class="empty">Henüz prim eklenmedi.</div>';return;}arr.forEach((x,i)=>{const el=document.createElement("div");el.className="item";el.innerHTML=`<div class="num">#${i+1}</div><div><div class="amt">${money(x.amount)}</div><div class="time">${x.time||""}</div></div><button class="del" aria-label="Sil" data-i="${i}">×</button>`;list.appendChild(el);});list.querySelectorAll(".del").forEach(b=>b.onclick=()=>removePrime(Number(b.dataset.i)));}
-document.querySelectorAll(".prime-btn").forEach(b=>b.onclick=()=>addPrime(b.dataset.prime));
-document.getElementById("prev").onclick=()=>{selected.setDate(selected.getDate()-1);render();};
-document.getElementById("next").onclick=()=>{selected.setDate(selected.getDate()+1);render();};
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
-render();
+let selected=new Date();selected.setHours(12,0,0,0);
+function keyOf(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function money(n){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:0}).format(n)+" ₺"}
+function save(){localStorage.setItem(KEY,JSON.stringify(records));render()}
+function current(){return records[keyOf(selected)]||[]}
+function addPrime(name,amount){const arr=current();if(arr.length>=10){alert("Bu gün için 10 bakım sınırına ulaşıldı.");return}const now=new Date();arr.push({name,amount:Number(amount),time:now.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})});records[keyOf(selected)]=arr;save()}
+function removePrime(i){const k=keyOf(selected),arr=current();arr.splice(i,1);if(arr.length)records[k]=arr;else delete records[k];save()}
+function render(){const arr=current();const total=arr.reduce((s,x)=>s+Number(x.amount||0),0);document.getElementById("date").textContent=selected.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",weekday:"short"});document.getElementById("total").textContent=money(total);document.getElementById("count").textContent=arr.length;document.getElementById("remain").textContent=(10-arr.length)+" slot boş";document.querySelectorAll(".prime-btn").forEach(b=>b.disabled=arr.length>=10);const list=document.getElementById("list");list.innerHTML="";if(!arr.length){list.innerHTML='<div class="empty">Henüz bakım eklenmedi.</div>';return}arr.forEach((x,i)=>{const name=x.name||legacyNames[Number(x.amount)]||"Bakım";const el=document.createElement("div");el.className="item";el.innerHTML=`<div class="num">#${i+1}</div><div><div class="care-name">${name}</div><div class="item-meta"><span class="amt">${money(x.amount)}</span><span class="time">${x.time||""}</span></div></div><button class="del" aria-label="Sil" data-i="${i}">×</button>`;list.appendChild(el)});list.querySelectorAll(".del").forEach(b=>b.onclick=()=>removePrime(Number(b.dataset.i)))}
+document.querySelectorAll(".prime-btn").forEach(b=>b.onclick=()=>addPrime(b.dataset.name,b.dataset.prime));
+document.getElementById("prev").onclick=()=>{selected.setDate(selected.getDate()-1);render()};document.getElementById("next").onclick=()=>{selected.setDate(selected.getDate()+1);render()};
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}render();
 </script>
 </body>
 </html>
