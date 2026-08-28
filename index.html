@@ -15,7 +15,8 @@
     html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
     body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
     .app{max-width:520px;margin:0 auto;padding:16px 16px 40px}
-    h1{font-size:23px;margin:6px 0 3px}.sub{margin:0 0 18px;color:var(--muted);font-size:13px}
+    h1{font-size:23px;margin:6px 0 3px}.sub{margin:0 0 10px;color:var(--muted);font-size:13px}
+    .compliment{background:linear-gradient(135deg,#242832,#1a1d24);border:1px solid #343b48;border-radius:16px;padding:12px 14px;margin:0 0 16px;font-size:14px;font-weight:800;text-align:center;letter-spacing:.05px;box-shadow:0 8px 24px rgba(0,0,0,.14)}
     .date-row{display:flex;gap:10px;align-items:center;margin-bottom:14px}
     .date-pill{flex:1;background:var(--card);border:1px solid var(--line);border-radius:17px;padding:13px;text-align:center;font-weight:800}
     button{font:inherit}.icon{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:15px;padding:11px 14px;font-size:20px}
@@ -37,6 +38,7 @@
 <body>
 <div class="app">
   <h1>Ersen Prim</h1><p class="sub">Günlük bakım & prim takibi</p>
+  <div class="compliment">Ersen Abi Bugün De Çok Yakışıklısın 🔥</div>
   <div class="date-row"><button class="icon" id="prev">‹</button><div class="date-pill" id="date"></div><button class="icon" id="next">›</button></div>
   <div class="total-card"><div class="label">BUGÜNÜN TOPLAM PRİMİ</div><div class="total" id="total">0 ₺</div><div class="count"><span id="count">0</span> / 10 bakım</div></div>
   <div class="month-card"><div class="month-label" id="monthLabel">AYLIK TOPLAM PRİM</div><div class="month-total" id="monthTotal">0 ₺</div></div>
