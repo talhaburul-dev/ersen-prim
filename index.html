@@ -33,6 +33,14 @@
     .num{font-weight:800;color:#b9c1cc}.care-name{font-size:15px;font-weight:800}.item-meta{display:flex;gap:8px;align-items:center;margin-top:3px}.amt{font-size:14px;font-weight:900}.time{font-size:12px;color:var(--muted)}
     .del{border:0;background:transparent;color:var(--danger);font-size:20px;padding:6px 4px}.empty{color:var(--muted);font-size:14px;background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:18px;text-align:center}
     .footer-note{margin:18px 4px 0;color:var(--muted);font-size:11px;line-height:1.5;text-align:center}
+    .combo-box{border:1px solid var(--line);border-radius:18px;background:var(--card);margin:0 0 18px;overflow:hidden}
+    .combo-box summary{cursor:pointer;padding:15px;font-size:14px;font-weight:800;min-height:48px}
+    .combo-box summary:focus-visible{outline:2px solid var(--muted);outline-offset:-4px}
+    .combo-content{padding:0 12px 12px}
+    .combo-note{color:var(--muted);font-size:12px;line-height:1.5;margin:0 0 12px}
+    .combo-title{font-size:14px;margin:14px 2px 8px}
+    .combo-grid{margin-bottom:10px}
+    .combo-grid .care{font-size:13px;line-height:1.3}
   </style>
 </head>
 <body>
@@ -40,7 +48,7 @@
   <h1>Ersen Prim</h1><p class="sub">Günlük bakım & prim takibi</p>
   <div class="compliment">Ersen Abi Bugün De Çok Yakışıklısın 🔥</div>
   <div class="date-row"><button class="icon" id="prev">‹</button><div class="date-pill" id="date"></div><button class="icon" id="next">›</button></div>
-  <div class="total-card"><div class="label">BUGÜNÜN TOPLAM PRİMİ</div><div class="total" id="total">0 ₺</div><div class="count"><span id="count">0</span> / 10 bakım</div></div>
+  <div class="total-card"><div class="label">BUGÜNÜN TOPLAM PRİMİ</div><div class="total" id="total">0 ₺</div><div class="count"><span id="count">0</span> / 15 bakım</div></div>
   <div class="month-card"><div class="month-label" id="monthLabel">AYLIK TOPLAM PRİM</div><div class="month-total" id="monthTotal">0 ₺</div></div>
   <div class="choose-title">Bakım seç</div>
   <div class="prime-grid">
@@ -53,8 +61,15 @@
     <button class="prime-btn" data-name="Ayak Masajı" data-prime="225"><span class="care">Ayak Masajı</span><span class="price">+225 ₺</span></button>
     <button class="prime-btn" data-name="Sırt Masajı" data-prime="225"><span class="care">Sırt Masajı</span><span class="price">+225 ₺</span></button>
   </div>
-  <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">10 slot boş</span></div><div id="list"></div>
-  <div class="footer-note">Her güne en fazla 10 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
+  <details class="combo-box" id="comboBox">
+    <summary>Hamam + Masaj kombinasyonları</summary>
+    <div class="combo-content">
+      <p class="combo-note">Paketi seç; toplam prim tek bakım kaydı olarak eklensin.</p>
+      <div id="comboGroups"></div>
+    </div>
+  </details>
+  <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">15 slot boş</span></div><div id="list"></div>
+  <div class="footer-note">Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
 </div>
 <script>
 const KEY="ersenPrimSimpleV2";
@@ -67,10 +82,46 @@ function monthTotal(d){const prefix=monthPrefix(d);return Object.entries(records
 function money(n){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:0}).format(n)+" ₺"}
 function save(){localStorage.setItem(KEY,JSON.stringify(records));render()}
 function current(){return records[keyOf(selected)]||[]}
-function addPrime(name,amount){const arr=current();if(arr.length>=10){alert("Bu gün için 10 bakım sınırına ulaşıldı.");return}const now=new Date();arr.push({name,amount:Number(amount),time:now.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})});records[keyOf(selected)]=arr;save()}
+function addPrime(name,amount){const arr=current();if(arr.length>=15){alert("Bu gün için 15 bakım sınırına ulaşıldı.");return}const now=new Date();arr.push({name,amount:Number(amount),time:now.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})});records[keyOf(selected)]=arr;save()}
 function removePrime(i){const k=keyOf(selected),arr=current();arr.splice(i,1);if(arr.length)records[k]=arr;else delete records[k];save()}
-function render(){const arr=current();const total=arr.reduce((s,x)=>s+Number(x.amount||0),0);document.getElementById("date").textContent=selected.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",weekday:"short"});document.getElementById("total").textContent=money(total);document.getElementById("count").textContent=arr.length;document.getElementById("monthTotal").textContent=money(monthTotal(selected));document.getElementById("monthLabel").textContent=selected.toLocaleDateString("tr-TR",{month:"long"}).toLocaleUpperCase("tr-TR")+" AYI TOPLAM PRİMİ";document.getElementById("remain").textContent=(10-arr.length)+" slot boş";document.querySelectorAll(".prime-btn").forEach(b=>b.disabled=arr.length>=10);const list=document.getElementById("list");list.innerHTML="";if(!arr.length){list.innerHTML='<div class="empty">Henüz bakım eklenmedi.</div>';return}arr.forEach((x,i)=>{const name=x.name||legacyNames[Number(x.amount)]||"Bakım";const el=document.createElement("div");el.className="item";el.innerHTML=`<div class="num">#${i+1}</div><div><div class="care-name">${name}</div><div class="item-meta"><span class="amt">${money(x.amount)}</span><span class="time">${x.time||""}</span></div></div><button class="del" aria-label="Sil" data-i="${i}">×</button>`;list.appendChild(el)});list.querySelectorAll(".del").forEach(b=>b.onclick=()=>removePrime(Number(b.dataset.i)))}
-document.querySelectorAll(".prime-btn").forEach(b=>b.onclick=()=>addPrime(b.dataset.name,b.dataset.prime));
+function render(){const arr=current();const total=arr.reduce((s,x)=>s+Number(x.amount||0),0);document.getElementById("date").textContent=selected.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",weekday:"short"});document.getElementById("total").textContent=money(total);document.getElementById("count").textContent=arr.length;document.getElementById("monthTotal").textContent=money(monthTotal(selected));document.getElementById("monthLabel").textContent=selected.toLocaleDateString("tr-TR",{month:"long"}).toLocaleUpperCase("tr-TR")+" AYI TOPLAM PRİMİ";document.getElementById("remain").textContent=(15-arr.length)+" slot boş";document.querySelectorAll(".prime-btn").forEach(b=>b.disabled=arr.length>=15);const list=document.getElementById("list");list.innerHTML="";if(!arr.length){list.innerHTML='<div class="empty">Henüz bakım eklenmedi.</div>';return}arr.forEach((x,i)=>{const name=x.name||legacyNames[Number(x.amount)]||"Bakım";const el=document.createElement("div");el.className="item";el.innerHTML=`<div class="num">#${i+1}</div><div><div class="care-name">${name}</div><div class="item-meta"><span class="amt">${money(x.amount)}</span><span class="time">${x.time||""}</span></div></div><button class="del" aria-label="Sil" data-i="${i}">×</button>`;list.appendChild(el)});list.querySelectorAll(".del").forEach(b=>b.onclick=()=>removePrime(Number(b.dataset.i)))}
+const baseButtons=Array.from(document.querySelectorAll(".prime-btn"));
+const hamamPackages=baseButtons.slice(0,4);
+const massageServices=baseButtons.slice(4);
+const comboBox=document.getElementById("comboBox");
+const comboGroups=document.getElementById("comboGroups");
+hamamPackages.forEach(hamam=>{
+  const heading=document.createElement("h2");
+  heading.className="combo-title";
+  heading.textContent=hamam.dataset.name;
+  comboGroups.appendChild(heading);
+  const grid=document.createElement("div");
+  grid.className="prime-grid combo-grid";
+  massageServices.forEach(massage=>{
+    const name=hamam.dataset.name+" + "+massage.dataset.name;
+    const amount=Number(hamam.dataset.prime)+Number(massage.dataset.prime);
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="prime-btn";
+    button.dataset.name=name;
+    button.dataset.prime=String(amount);
+    const care=document.createElement("span");
+    care.className="care";
+    care.textContent=name;
+    const price=document.createElement("span");
+    price.className="price";
+    price.textContent="+"+money(amount);
+    button.appendChild(care);
+    button.appendChild(price);
+    grid.appendChild(button);
+  });
+  comboGroups.appendChild(grid);
+});
+document.querySelectorAll(".prime-btn").forEach(b=>b.onclick=()=>{
+  if(b.disabled)return;
+  addPrime(b.dataset.name,b.dataset.prime);
+  if(comboBox.contains(b))comboBox.open=false;
+});
 document.getElementById("prev").onclick=()=>{selected.setDate(selected.getDate()-1);render()};document.getElementById("next").onclick=()=>{selected.setDate(selected.getDate()+1);render()};
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}render();
 </script>
