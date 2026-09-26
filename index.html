@@ -159,23 +159,25 @@ function render(){renderTips();document.getElementById("dayLabel").textContent=k
 function tipMoney(cents){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:0}).format(cents/100)+" ₺"}
 function tipNet(tip){return tip.method==="card"?tip.netCents:tip.cents}
 function tipSum(arr){return (Array.isArray(arr)?arr:[]).reduce((sum,x)=>sum+tipNet(x),0)}
-// Round each entry to kuruş; derive the deduction from gross so the parts always add up.
+// Apply the 5-TL floor to the exact gross / 1.20 result before any kuruş rounding.
 function calculateTip(grossCents,method){
-  const netCents=method==="card"?Math.round(grossCents*5/6):grossCents;
-  return {method,grossCents,deductionCents:grossCents-netCents,netCents,cents:netCents};
+  const rawNetCents=method==="card"?Math.round(grossCents*5/6):grossCents;
+  const netCents=method==="card"?Math.floor(grossCents/600)*500:grossCents;
+  return {method,grossCents,deductionCents:grossCents-netCents,netCents,cents:netCents,
+    rawNetCents,roundingCents:rawNetCents-netCents,roundingRule:method==="card"?"floor-5-tl":"none"};
 }
 function renderTipPreview(){
   const card=selectedTipMethod==="card";
   document.getElementById("tipAmountLabel").textContent=card?"Brüt kart bahşişi (₺)":"Bahşiş tutarı (₺)";
   const preview=document.getElementById("tipPreview");preview.innerHTML="";
   const note=document.createElement("div");
-  note.textContent=card?"Kart hesabı: %20 KDV dahil varsayımıyla net = brüt ÷ 1,20.":"Nakit bahşişin tamamı net toplama eklenir.";
+  note.textContent=card?"Kart hesabı: %20 KDV dahil varsayımıyla brüt ÷ 1,20; net alt 5 TL katına indirilir.":"Nakit bahşişin tamamı net toplama eklenir.";
   preview.appendChild(note);
   const cents=parseTip(document.getElementById("tipAmount").value);
   if(card&&cents!==null){
     const result=calculateTip(cents,"card");
     const values=document.createElement("div");
-    values.textContent="Brüt: "+tipMoney(cents)+" · Kesinti: "+tipMoney(result.deductionCents);
+    values.textContent="Brüt: "+tipMoney(cents)+" · Kesinti ve yuvarlama: "+tipMoney(result.deductionCents);
     const net=document.createElement("b");net.textContent="Net: "+tipMoney(result.netCents);
     preview.appendChild(values);preview.appendChild(net);
   }
@@ -220,7 +222,7 @@ function renderTips(){
     info.appendChild(amount);info.appendChild(time);
     const detail=document.createElement("div");detail.className="tip-breakdown";
     detail.textContent=tip.method==="card"
-      ?"Kart · Brüt: "+tipMoney(tip.grossCents)+" · Kesinti: "+tipMoney(tip.deductionCents)
+      ?"Kart · Brüt: "+tipMoney(tip.grossCents)+(tip.roundingRule==="floor-5-tl"?" · Kesinti ve yuvarlama: ":" · Kesinti: ")+tipMoney(tip.deductionCents)
       :tip.method==="cash"?"Nakit · Kesinti yok":"Eski kayıt · Tutar korundu";
     info.appendChild(detail);
     const del=document.createElement("button");del.type="button";del.className="del";del.textContent="×";
