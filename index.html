@@ -84,6 +84,7 @@
     .shift-fields input{display:block;width:100%;min-width:0;background:var(--card2);color:var(--text);border:1px solid var(--line);padding:10px;border-radius:10px;font:inherit;font-size:16px;margin-top:6px}
     .shift-note{font-size:12px;line-height:1.5;color:var(--muted);margin:10px 0 0}
     .overtime-card{border-color:#46506a}.prime-breakdown{font-size:12px;line-height:1.6;color:var(--muted);margin-top:5px}
+    .care-edit{margin-top:8px;padding:8px 12px;min-height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--text);font:inherit;font-size:13px;cursor:pointer}
   </style>
 </head>
 <body>
@@ -114,7 +115,7 @@
   <section class="shift-panel" aria-labelledby="shiftTitle">
     <b id="shiftTitle">Seçili günün vardiyası</b>
     <div class="shift-fields"><label>Başlangıç<input id="shiftStart" type="time" value="08:00"></label><label>Bitiş<input id="shiftEnd" type="time" value="17:00"></label></div>
-    <p class="shift-note" id="shiftStatus" role="status">Değişiklikler yeni bakım kayıtlarına uygulanır.</p>
+    <p class="shift-note" id="shiftStatus" role="status">Vardiya, saat eklerken veya düzenlerken kullanılır.</p>
     <p class="shift-note">Bitiş başlangıçtan erkense vardiya ertesi gün biter. Vardiya seçili tarihte başlar. Primler bakımın başladığı güne yazılır.</p>
   </section>
   <div class="choose-title">Bakım seç</div>
@@ -195,7 +196,7 @@ function primeTotals(arr){return arr.reduce((sum,x)=>({normal:sum.normal+normalC
 function monthPrimeTotals(date){return primeTotals(Object.entries(records).filter(([day])=>day.startsWith(monthPrefix(date))).flatMap(([,arr])=>Array.isArray(arr)?arr:[]))}
 function readShift(){const start=document.getElementById("shiftStart").value,end=document.getElementById("shiftEnd").value;if(minuteOf(start)===null||minuteOf(end)===null||start===end)throw Error("Vardiya için geçerli ve farklı başlangıç/bitiş saatleri gir.");return {start,end}}
 function saveShift(){
-  try{const shift=readShift(),next={...shifts,[keyOf(selected)]:shift};localStorage.setItem(SHIFT_KEY,JSON.stringify(next));shifts=next;document.getElementById("shiftStatus").textContent="Vardiya kaydedildi. Yeni kayıtlara uygulanır."}
+  try{const shift=readShift(),next={...shifts,[keyOf(selected)]:shift};localStorage.setItem(SHIFT_KEY,JSON.stringify(next));shifts=next;document.getElementById("shiftStatus").textContent="Vardiya kaydedildi. Saat eklerken veya düzenlerken uygulanır."}
   catch(error){document.getElementById("shiftStatus").textContent=error.message}
 }
 function previewCare(){
@@ -205,7 +206,7 @@ function previewCare(){
   try{
     const shift=readShift(),start=minuteOf(document.getElementById("careStart").value);
     if(start===null)throw Error("Bakımın gerçek başlangıç saatini gir.");
-    const split=splitPrime(pendingCare.amount,careDuration(pendingCare.name),start,minuteOf(shift.start),minuteOf(shift.end));
+    const split=splitPrime(pendingCare.amount,pendingCare.duration,start,minuteOf(shift.start),minuteOf(shift.end));
     output.textContent=split.durationMinutes+" dk · Bitiş "+timeAt(split.endMinutes)+" · Normal "+split.normalMinutes+" dk: "+money(split.normalCents/100)+" · Mesai "+split.overtimeMinutes+" dk: "+money(split.overtimeCents/100)+" · Toplam "+money(split.totalCents/100);
     document.getElementById("careSave").disabled=false;
     return {...split,shiftStart:shift.start,shiftEnd:shift.end};
@@ -213,17 +214,30 @@ function previewCare(){
 }
 function addPrime(name,amount){
   if(current().length>=15){alert("Bu gün için 15 bakım sınırına ulaşıldı.");return}
-  pendingCare={name,amount:Number(amount),day:keyOf(selected)};
-  document.getElementById("careTitle").textContent=name;
+  const totalCents=Math.round(Number(amount)*100);
+  const entry={name,amount:Number(amount),durationMinutes:careDuration(name),totalCents,normalCents:totalCents,overtimeCents:0,
+    time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})};
+  const next={...records,[keyOf(selected)]:[...current(),entry]};
+  try{localStorage.setItem(KEY,JSON.stringify(next))}catch{alert("Kayıt saklanamadı. Tekrar dene.");return}
+  records=next;render();
+}
+function editCareTime(index){
+  const record=current()[index];if(!record)return;
+  const name=record.name||legacyNames[Number(record.amount)]||"Bakım";
+  const duration=record.durationMinutes||careDuration(name);
+  if(!duration){alert("Bu bakımın süresi bilinmediği için saat eklenemiyor.");return}
+  pendingCare={name,amount:Number(record.amount),duration,index,record,day:keyOf(selected)};
+  document.getElementById("careTitle").textContent=name+" · "+(Number.isInteger(record.startMinutes)?"Saati düzenle":"Saat ekle");
   document.getElementById("careDate").textContent=selected.toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" · Vardiya "+document.getElementById("shiftStart").value+"–"+document.getElementById("shiftEnd").value;
-  document.getElementById("careStart").value="";
+  document.getElementById("careStart").value=Number.isInteger(record.startMinutes)?timeAt(record.startMinutes):"";
   previewCare();document.getElementById("careDialog").showModal();
 }
 function commitCare(){
-  if(!pendingCare||pendingCare.day!==keyOf(selected)||current().length>=15)return;
+  if(!pendingCare||pendingCare.day!==keyOf(selected)||current()[pendingCare.index]!==pendingCare.record)return;
   const split=previewCare();if(!split)return;
-  const entry={name:pendingCare.name,amount:pendingCare.amount,...split,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})};
-  const next={...records,[keyOf(selected)]:[...current(),entry]};
+  const arr=[...current()];
+  arr[pendingCare.index]={...pendingCare.record,...split};
+  const next={...records,[keyOf(selected)]:arr};
   try{localStorage.setItem(KEY,JSON.stringify(next))}catch{document.getElementById("carePreview").textContent="Kayıt saklanamadı. Tekrar dene.";return}
   records=next;pendingCare=null;document.getElementById("careDialog").close();render();
 }
@@ -233,7 +247,7 @@ function render(){
   if(shiftRenderedDay!==keyOf(selected)){
     const shift=shifts[keyOf(selected)]||{start:"08:00",end:"17:00"};
     document.getElementById("shiftStart").value=shift.start;document.getElementById("shiftEnd").value=shift.end;
-    document.getElementById("shiftStatus").textContent="Değişiklikler yeni bakım kayıtlarına uygulanır.";
+    document.getElementById("shiftStatus").textContent="Vardiya, saat eklerken veya düzenlerken kullanılır.";
     shiftRenderedDay=keyOf(selected);
   }
   const arr=current(),daily=primeTotals(arr),monthly=monthPrimeTotals(selected);
@@ -258,10 +272,13 @@ function render(){
     const name=document.createElement("div");name.className="care-name";name.textContent=x.name||legacyNames[Number(x.amount)]||"Bakım";
     const amount=document.createElement("div");amount.className="amt";amount.textContent="Toplam "+money(x.amount);
     const detail=document.createElement("div");detail.className="prime-breakdown";
-    detail.textContent=Number.isInteger(x.normalCents)
+    detail.textContent=Number.isInteger(x.startMinutes)
       ?timeAt(x.startMinutes)+"–"+timeAt(x.endMinutes)+" · "+x.durationMinutes+" dk · Normal "+money(x.normalCents/100)+" ("+x.normalMinutes+" dk) · Mesai "+money(x.overtimeCents/100)+" ("+x.overtimeMinutes+" dk)"
-      :"Eski kayıt · Saat/süre bilinmiyor; tutar normal toplamda korundu.";
+       :Number.isInteger(x.normalCents)?"Saat eklenmedi · Tamamı normal prim.":"Eski kayıt · Saat/süre bilinmiyor; tutar normal toplamda korundu.";
     info.appendChild(name);info.appendChild(amount);info.appendChild(detail);
+    const edit=document.createElement("button");edit.type="button";edit.className="care-edit";
+    edit.textContent=Number.isInteger(x.startMinutes)?"Saati düzenle":"Saat ekle";
+    edit.onclick=()=>editCareTime(i);info.appendChild(edit);
     const del=document.createElement("button");del.className="del";del.setAttribute("aria-label","Bakımı sil");del.textContent="×";del.onclick=()=>removePrime(i);
     el.appendChild(num);el.appendChild(info);el.appendChild(del);list.appendChild(el);
   });
