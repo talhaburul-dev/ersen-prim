@@ -88,12 +88,16 @@
     .shift-fields input{max-width:100%;box-sizing:border-box}
     #careDialog .shift-fields{grid-template-columns:minmax(0,1fr)}
     @media(max-width:420px){.shift-fields{grid-template-columns:minmax(0,1fr);gap:14px}}
+    .compliment{overflow-wrap:anywhere;line-height:1.45;min-width:0}
+    .compliment{animation:compliment-in .65s ease-out both}
+    @keyframes compliment-in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+    @media(prefers-reduced-motion:reduce){.compliment{animation:none}}
   </style>
 </head>
 <body>
 <div class="app">
   <h1>Ersen Prim</h1><p class="sub">Günlük bakım & prim takibi</p>
-  <div class="compliment">Ersen Abi Bugün De Çok Yakışıklısın 🔥</div>
+  <div class="compliment" id="compliment">Ersen Abi, bugün de ortamın yıldızı sensin ✨</div>
   <div class="date-row"><button class="icon" id="prev">‹</button><button type="button" class="date-pill" id="date" aria-haspopup="dialog" aria-controls="calendar" title="Takvimi aç"></button><button class="icon" id="next">›</button></div>
   <div class="total-card"><div class="label" id="dayLabel">BUGÜNÜN TOPLAM PRİMİ</div><div class="total" id="total">0 ₺</div><div class="count"><span id="count">0</span> / 15 bakım</div></div>
   <div class="month-card"><div class="month-label" id="monthLabel">AYLIK TOPLAM PRİM</div><div class="month-total" id="monthTotal">0 ₺</div></div>
@@ -140,7 +144,7 @@
     </div>
   </details>
   <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">15 slot boş</span></div><div id="list"></div>
-  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 15 · Normal vardiya 9 saat</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
+  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 16 · Normal vardiya 9 saat</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
 </div>
 <dialog class="calendar" id="careDialog" aria-labelledby="careTitle">
   <div class="calendar-head"><h2 id="careTitle">Bakım ekle</h2><button type="button" class="icon" id="careClose" aria-label="Kapat">×</button></div>
@@ -163,6 +167,38 @@
   <div class="calendar-actions"><button type="button" id="calendarToday">Bugüne git</button><button type="button" id="calendarCancel">Vazgeç</button></div>
 </dialog>
 <script>
+const compliments=[
+  "Ersen Abi, bugün de ortamın yıldızı sensin ✨",
+  "Takunyalar hazırsa sahne senin Ersen Abi 😎",
+  "Ersen Abi, karizma yine tam kadro 🔥",
+  "Bugünün ustası belli: Ersen Abi 👑",
+  "Ersen Abi, köpük bol, keyif yerinde 🫧",
+  "Ersen Abi, sen gelince gün güzelleşiyor ☀️",
+  "Peştamal tamam, karizma tamam Ersen Abi 😎",
+  "Ersen Abi, gülüşün güne yeter 😄",
+  "Ustalık sende, alkış bizden Ersen Abi 👏",
+  "Ersen Abi, bugün de maşallahın var 🧿",
+  "Hamam sıcak, muhabbetin daha sıcak Ersen Abi ☕",
+  "Ersen Abi, ellerine sağlık şimdiden 🙌",
+  "Bugüne bir Ersen Abi dokunuşu lazım ✨",
+  "Ersen Abi, enerjin yine ışıl ışıl 🌟",
+  "Köpükler uçuşsun, Ersen Abi iş başında 🫧",
+  "Ersen Abi, bu havanın adı ustalık 😎",
+  "Günün güzel başlama sebebi: Ersen Abi ☀️",
+  "Ersen Abi, peştamal bile sana yakışıyor 🔥",
+  "Keyifler tamam mı Ersen Abi? Sahne hazır 🎭",
+  "Ersen Abi, bugün de gönüllerdesin 💛"
+];
+(function chooseCompliment(){
+  const key="ersenLastComplimentV1";
+  let previous=null;
+  try{previous=localStorage.getItem(key)}catch{}
+  const choices=compliments.filter(message=>message!==previous);
+  const message=choices[Math.floor(Math.random()*choices.length)];
+  document.getElementById("compliment").textContent=message;
+  try{localStorage.setItem(key,message)}catch{}
+})();
+
 const KEY="ersenPrimSimpleV2";
 const legacyNames={300:"Pir-u Pak",405:"Keyf-i Hamam",540:"Zevk-i Sefa",745:"Ab-ı Hayat"};
 let records=JSON.parse(localStorage.getItem(KEY)||"{}");
