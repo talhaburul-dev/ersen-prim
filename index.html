@@ -79,6 +79,11 @@
     .tip-preview,.tip-breakdown{font-size:12px;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
     .tip-preview{margin:10px 0}
     .tip-preview b{color:#b9e7ce}
+    .shift-panel{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:14px;margin:12px 0}
+    .shift-fields{display:flex;gap:12px;margin-top:8px}.shift-fields label{flex:1;font-size:12px;color:var(--muted)}
+    .shift-fields input{display:block;width:100%;min-width:0;background:var(--card2);color:var(--text);border:1px solid var(--line);padding:10px;border-radius:10px;font:inherit;font-size:16px;margin-top:6px}
+    .shift-note{font-size:12px;line-height:1.5;color:var(--muted);margin:10px 0 0}
+    .overtime-card{border-color:#46506a}.prime-breakdown{font-size:12px;line-height:1.6;color:var(--muted);margin-top:5px}
   </style>
 </head>
 <body>
@@ -88,6 +93,8 @@
   <div class="date-row"><button class="icon" id="prev">‹</button><button type="button" class="date-pill" id="date" aria-haspopup="dialog" aria-controls="calendar" title="Takvimi aç"></button><button class="icon" id="next">›</button></div>
   <div class="total-card"><div class="label" id="dayLabel">BUGÜNÜN TOPLAM PRİMİ</div><div class="total" id="total">0 ₺</div><div class="count"><span id="count">0</span> / 15 bakım</div></div>
   <div class="month-card"><div class="month-label" id="monthLabel">AYLIK TOPLAM PRİM</div><div class="month-total" id="monthTotal">0 ₺</div></div>
+  <div class="month-card overtime-card"><div class="month-label">SEÇİLEN GÜNÜN MESAİ PRİMİ</div><div class="month-total" id="overtimeDay">0 ₺</div></div>
+  <div class="month-card overtime-card"><div class="month-label" id="overtimeMonthLabel">AYLIK MESAİ PRİMİ</div><div class="month-total" id="overtimeMonth">0 ₺</div></div>
   <section class="tip-panel" aria-labelledby="tipTitle">
     <h2 id="tipTitle">Bahşiş</h2>
     <div class="tip-totals">
@@ -103,6 +110,12 @@
     <div class="tip-preview" id="tipPreview" aria-live="polite"></div>
     <p class="tip-status" id="tipStatus" role="status" aria-live="polite"></p>
     <div class="tip-list" id="tipList" aria-label="Seçilen günün bahşişleri"></div>
+  </section>
+  <section class="shift-panel" aria-labelledby="shiftTitle">
+    <b id="shiftTitle">Seçili günün vardiyası</b>
+    <div class="shift-fields"><label>Başlangıç<input id="shiftStart" type="time" value="08:00"></label><label>Bitiş<input id="shiftEnd" type="time" value="17:00"></label></div>
+    <p class="shift-note" id="shiftStatus" role="status">Değişiklikler yeni bakım kayıtlarına uygulanır.</p>
+    <p class="shift-note">Bitiş başlangıçtan erkense vardiya ertesi gün biter. Vardiya seçili tarihte başlar. Primler bakımın başladığı güne yazılır.</p>
   </section>
   <div class="choose-title">Bakım seç</div>
   <div class="prime-grid">
@@ -125,6 +138,13 @@
   <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">15 slot boş</span></div><div id="list"></div>
   <div class="footer-note">Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
 </div>
+<dialog class="calendar" id="careDialog" aria-labelledby="careTitle">
+  <div class="calendar-head"><h2 id="careTitle">Bakım ekle</h2><button type="button" class="icon" id="careClose" aria-label="Kapat">×</button></div>
+  <p class="shift-note" id="careDate"></p>
+  <div class="shift-fields"><label>Gerçek başlangıç saati<input type="time" id="careStart"></label></div>
+  <p class="shift-note" id="carePreview" role="status" aria-live="polite"></p>
+  <div class="calendar-actions"><button type="button" id="careSave">Kaydet</button><button type="button" id="careCancel">Vazgeç</button></div>
+</dialog>
 <dialog class="calendar" id="calendar" aria-labelledby="calendarTitle">
   <div class="calendar-head"><h2 id="calendarTitle">Tarih seç</h2><button type="button" class="icon" id="calendarClose" aria-label="Takvimi kapat">×</button></div>
   <div class="calendar-nav">
@@ -146,16 +166,114 @@ const TIP_KEY="ersenTipsV1";
 let tips=JSON.parse(localStorage.getItem(TIP_KEY)||"{}");
 let tipRenderedDay="";
 let selectedTipMethod="cash";
+const SHIFT_KEY="ersenShiftsV1";
+let shifts=JSON.parse(localStorage.getItem(SHIFT_KEY)||"{}");
+let shiftRenderedDay="";
+let pendingCare=null;
+const durations={"Pir-u Pak":45,"Keyf-i Hamam":60,"Zevk-i Sefa":80,"Ab-ı Hayat":110,"Aromaterapi":50,"Antistress":50,"Antistres":50,"Sırt Masajı":35,"Ayak Masajı":35};
 let selected=new Date();selected.setHours(12,0,0,0);
 function keyOf(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function monthPrefix(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-`}
 function monthTotal(d){const prefix=monthPrefix(d);return Object.entries(records).reduce((sum,[day,arr])=>day.startsWith(prefix)?sum+(Array.isArray(arr)?arr.reduce((s,x)=>s+Number(x.amount||0),0):0):sum,0)}
-function money(n){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:0}).format(n)+" ₺"}
+function money(n){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:2}).format(n)+" ₺"}
 function save(){localStorage.setItem(KEY,JSON.stringify(records));render()}
 function current(){return records[keyOf(selected)]||[]}
-function addPrime(name,amount){const arr=current();if(arr.length>=15){alert("Bu gün için 15 bakım sınırına ulaşıldı.");return}const now=new Date();arr.push({name,amount:Number(amount),time:now.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})});records[keyOf(selected)]=arr;save()}
+
+function careDuration(name){return name.split(" + ").reduce((sum,part)=>sum+(durations[part]||0),0)}
+function minuteOf(value){if(!/^\d{2}:\d{2}$/.test(value))return null;const [h,m]=value.split(":").map(Number);return h<24&&m<60?h*60+m:null}
+function timeAt(minutes){return String(Math.floor(minutes%1440/60)).padStart(2,"0")+":"+String(minutes%60).padStart(2,"0")+(minutes>=1440?" (ertesi gün)":"")}
+function splitPrime(amount,duration,start,shiftStart,shiftEnd){
+  if(!Number.isInteger(duration)||duration<=0||[start,shiftStart,shiftEnd].some(x=>x===null)||shiftStart===shiftEnd)throw Error("Geçerli başlangıç ve farklı vardiya saatleri gir.");
+  const end=start+duration,shiftFinish=shiftEnd<shiftStart?shiftEnd+1440:shiftEnd;
+  const normalMinutes=Math.max(0,Math.min(end,shiftFinish)-Math.max(start,shiftStart));
+  const totalCents=Math.round(Number(amount)*100),normalCents=Math.round(totalCents*normalMinutes/duration);
+  return {durationMinutes:duration,startMinutes:start,endMinutes:end,normalMinutes,overtimeMinutes:duration-normalMinutes,totalCents,normalCents,overtimeCents:totalCents-normalCents};
+}
+function normalCentsOf(record){return Number.isInteger(record.normalCents)?record.normalCents:Math.round(Number(record.amount||0)*100)}
+function overtimeCentsOf(record){return Number.isInteger(record.overtimeCents)?record.overtimeCents:0}
+function primeTotals(arr){return arr.reduce((sum,x)=>({normal:sum.normal+normalCentsOf(x),overtime:sum.overtime+overtimeCentsOf(x)}),{normal:0,overtime:0})}
+function monthPrimeTotals(date){return primeTotals(Object.entries(records).filter(([day])=>day.startsWith(monthPrefix(date))).flatMap(([,arr])=>Array.isArray(arr)?arr:[]))}
+function readShift(){const start=document.getElementById("shiftStart").value,end=document.getElementById("shiftEnd").value;if(minuteOf(start)===null||minuteOf(end)===null||start===end)throw Error("Vardiya için geçerli ve farklı başlangıç/bitiş saatleri gir.");return {start,end}}
+function saveShift(){
+  try{const shift=readShift(),next={...shifts,[keyOf(selected)]:shift};localStorage.setItem(SHIFT_KEY,JSON.stringify(next));shifts=next;document.getElementById("shiftStatus").textContent="Vardiya kaydedildi. Yeni kayıtlara uygulanır."}
+  catch(error){document.getElementById("shiftStatus").textContent=error.message}
+}
+function previewCare(){
+  const output=document.getElementById("carePreview");
+  document.getElementById("careSave").disabled=true;
+  if(!pendingCare)return null;
+  try{
+    const shift=readShift(),start=minuteOf(document.getElementById("careStart").value);
+    if(start===null)throw Error("Bakımın gerçek başlangıç saatini gir.");
+    const split=splitPrime(pendingCare.amount,careDuration(pendingCare.name),start,minuteOf(shift.start),minuteOf(shift.end));
+    output.textContent=split.durationMinutes+" dk · Bitiş "+timeAt(split.endMinutes)+" · Normal "+split.normalMinutes+" dk: "+money(split.normalCents/100)+" · Mesai "+split.overtimeMinutes+" dk: "+money(split.overtimeCents/100)+" · Toplam "+money(split.totalCents/100);
+    document.getElementById("careSave").disabled=false;
+    return {...split,shiftStart:shift.start,shiftEnd:shift.end};
+  }catch(error){output.textContent=error.message;return null}
+}
+function addPrime(name,amount){
+  if(current().length>=15){alert("Bu gün için 15 bakım sınırına ulaşıldı.");return}
+  pendingCare={name,amount:Number(amount),day:keyOf(selected)};
+  document.getElementById("careTitle").textContent=name;
+  document.getElementById("careDate").textContent=selected.toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" · Vardiya "+document.getElementById("shiftStart").value+"–"+document.getElementById("shiftEnd").value;
+  document.getElementById("careStart").value="";
+  previewCare();document.getElementById("careDialog").showModal();
+}
+function commitCare(){
+  if(!pendingCare||pendingCare.day!==keyOf(selected)||current().length>=15)return;
+  const split=previewCare();if(!split)return;
+  const entry={name:pendingCare.name,amount:pendingCare.amount,...split,time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})};
+  const next={...records,[keyOf(selected)]:[...current(),entry]};
+  try{localStorage.setItem(KEY,JSON.stringify(next))}catch{document.getElementById("carePreview").textContent="Kayıt saklanamadı. Tekrar dene.";return}
+  records=next;pendingCare=null;document.getElementById("careDialog").close();render();
+}
 function removePrime(i){const k=keyOf(selected),arr=current();arr.splice(i,1);if(arr.length)records[k]=arr;else delete records[k];save()}
-function render(){renderTips();document.getElementById("dayLabel").textContent=keyOf(selected)===keyOf(new Date())?"BUGÜNÜN TOPLAM PRİMİ":"SEÇİLEN GÜNÜN TOPLAM PRİMİ";const arr=current();const total=arr.reduce((s,x)=>s+Number(x.amount||0),0);document.getElementById("date").textContent=selected.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",year:"numeric"});document.getElementById("total").textContent=money(total);document.getElementById("count").textContent=arr.length;document.getElementById("monthTotal").textContent=money(monthTotal(selected));document.getElementById("monthLabel").textContent=selected.toLocaleDateString("tr-TR",{month:"long"}).toLocaleUpperCase("tr-TR")+" AYI TOPLAM PRİMİ";document.getElementById("remain").textContent=(15-arr.length)+" slot boş";document.querySelectorAll(".prime-btn").forEach(b=>b.disabled=arr.length>=15);const list=document.getElementById("list");list.innerHTML="";if(!arr.length){list.innerHTML='<div class="empty">Henüz bakım eklenmedi.</div>';return}arr.forEach((x,i)=>{const name=x.name||legacyNames[Number(x.amount)]||"Bakım";const el=document.createElement("div");el.className="item";el.innerHTML=`<div class="num">#${i+1}</div><div><div class="care-name">${name}</div><div class="item-meta"><span class="amt">${money(x.amount)}</span><span class="time">${x.time||""}</span></div></div><button class="del" aria-label="Sil" data-i="${i}">×</button>`;list.appendChild(el)});list.querySelectorAll(".del").forEach(b=>b.onclick=()=>removePrime(Number(b.dataset.i)))}
+function render(){
+  renderTips();
+  if(shiftRenderedDay!==keyOf(selected)){
+    const shift=shifts[keyOf(selected)]||{start:"08:00",end:"17:00"};
+    document.getElementById("shiftStart").value=shift.start;document.getElementById("shiftEnd").value=shift.end;
+    document.getElementById("shiftStatus").textContent="Değişiklikler yeni bakım kayıtlarına uygulanır.";
+    shiftRenderedDay=keyOf(selected);
+  }
+  const arr=current(),daily=primeTotals(arr),monthly=monthPrimeTotals(selected);
+  document.getElementById("dayLabel").textContent="SEÇİLEN GÜNÜN NORMAL PRİMİ";
+  document.getElementById("date").textContent=selected.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",year:"numeric"});
+  document.getElementById("total").textContent=money(daily.normal/100);
+  document.getElementById("overtimeDay").textContent=money(daily.overtime/100);
+  document.getElementById("count").textContent=arr.length;
+  document.getElementById("monthTotal").textContent=money(monthly.normal/100);
+  document.getElementById("overtimeMonth").textContent=money(monthly.overtime/100);
+  const month=selected.toLocaleDateString("tr-TR",{month:"long",year:"numeric"}).toLocaleUpperCase("tr-TR");
+  document.getElementById("monthLabel").textContent=month+" NORMAL PRİMİ";
+  document.getElementById("overtimeMonthLabel").textContent=month+" MESAİ PRİMİ";
+  document.getElementById("remain").textContent=(15-arr.length)+" slot boş";
+  document.querySelectorAll(".prime-btn").forEach(b=>b.disabled=arr.length>=15);
+  const list=document.getElementById("list");list.innerHTML="";
+  if(!arr.length){list.innerHTML='<div class="empty">Henüz bakım eklenmedi.</div>';return}
+  arr.forEach((x,i)=>{
+    const el=document.createElement("div");el.className="item";
+    const num=document.createElement("div");num.className="num";num.textContent="#"+(i+1);
+    const info=document.createElement("div");
+    const name=document.createElement("div");name.className="care-name";name.textContent=x.name||legacyNames[Number(x.amount)]||"Bakım";
+    const amount=document.createElement("div");amount.className="amt";amount.textContent="Toplam "+money(x.amount);
+    const detail=document.createElement("div");detail.className="prime-breakdown";
+    detail.textContent=Number.isInteger(x.normalCents)
+      ?timeAt(x.startMinutes)+"–"+timeAt(x.endMinutes)+" · "+x.durationMinutes+" dk · Normal "+money(x.normalCents/100)+" ("+x.normalMinutes+" dk) · Mesai "+money(x.overtimeCents/100)+" ("+x.overtimeMinutes+" dk)"
+      :"Eski kayıt · Saat/süre bilinmiyor; tutar normal toplamda korundu.";
+    info.appendChild(name);info.appendChild(amount);info.appendChild(detail);
+    const del=document.createElement("button");del.className="del";del.setAttribute("aria-label","Bakımı sil");del.textContent="×";del.onclick=()=>removePrime(i);
+    el.appendChild(num);el.appendChild(info);el.appendChild(del);list.appendChild(el);
+  });
+}
+document.getElementById("shiftStart").onchange=saveShift;
+document.getElementById("shiftEnd").onchange=saveShift;
+document.getElementById("careStart").oninput=previewCare;
+document.getElementById("careSave").onclick=commitCare;
+function cancelCare(){pendingCare=null;document.getElementById("careDialog").close()}
+document.getElementById("careClose").onclick=cancelCare;
+document.getElementById("careCancel").onclick=cancelCare;
+document.getElementById("careDialog").oncancel=()=>{pendingCare=null};
 function tipMoney(cents){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:0}).format(cents/100)+" ₺"}
 function tipNet(tip){return tip.method==="card"?tip.netCents:tip.cents}
 function tipSum(arr){return (Array.isArray(arr)?arr:[]).reduce((sum,x)=>sum+tipNet(x),0)}
