@@ -137,7 +137,7 @@
     </div>
   </details>
   <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">15 slot boş</span></div><div id="list"></div>
-  <div class="footer-note">Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
+  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 13 · Saat isteğe bağlı</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
 </div>
 <dialog class="calendar" id="careDialog" aria-labelledby="careTitle">
   <div class="calendar-head"><h2 id="careTitle">Bakım ekle</h2><button type="button" class="icon" id="careClose" aria-label="Kapat">×</button></div>
@@ -489,7 +489,12 @@ document.getElementById("calendarToday").onclick=()=>chooseDate(new Date());
 document.getElementById("calendarClose").onclick=()=>calendar.close();
 document.getElementById("calendarCancel").onclick=()=>calendar.close();
 
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}render();
+document.getElementById("refreshApp").onclick=()=>{
+  const url=new URL(location.href);url.searchParams.set("appUpdate",Date.now());location.replace(url.href);
+};
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+}render();
 </script>
 </body>
 </html>
