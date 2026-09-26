@@ -114,9 +114,9 @@
   </section>
   <section class="shift-panel" aria-labelledby="shiftTitle">
     <b id="shiftTitle">Seçili günün vardiyası</b>
-    <div class="shift-fields"><label>Başlangıç<input id="shiftStart" type="time" value="08:00"></label><label>Bitiş<input id="shiftEnd" type="time" value="17:00"></label></div>
+    <div class="shift-fields"><label>Normal vardiya başlangıcı<input id="shiftStart" type="time" value="08:00"></label><label>Normal bitiş (+9 saat)<input id="shiftEnd" type="text" value="17:00" readonly aria-readonly="true"></label></div>
     <p class="shift-note" id="shiftStatus" role="status">Vardiya, saat eklerken veya düzenlerken kullanılır.</p>
-    <p class="shift-note">Bitiş başlangıçtan erkense vardiya ertesi gün biter. Vardiya seçili tarihte başlar. Primler bakımın başladığı güne yazılır.</p>
+    <p class="shift-note">Normal vardiya girişten itibaren 9 saattir. Gerçek çıkış saati bu sınırı değiştirmez. Gece yarısı aşılırsa bitiş ertesi gündür. Değişiklikler kayıtlı primleri değiştirmez; Saat ekle/düzenle ile uygulanır.</p>
   </section>
   <div class="choose-title">Bakım seç</div>
   <div class="prime-grid">
@@ -137,7 +137,7 @@
     </div>
   </details>
   <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">15 slot boş</span></div><div id="list"></div>
-  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 13 · Saat isteğe bağlı</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
+  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 14 · Normal vardiya 9 saat</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
 </div>
 <dialog class="calendar" id="careDialog" aria-labelledby="careTitle">
   <div class="calendar-head"><h2 id="careTitle">Bakım ekle</h2><button type="button" class="icon" id="careClose" aria-label="Kapat">×</button></div>
@@ -194,9 +194,15 @@ function normalCentsOf(record){return Number.isInteger(record.normalCents)?recor
 function overtimeCentsOf(record){return Number.isInteger(record.overtimeCents)?record.overtimeCents:0}
 function primeTotals(arr){return arr.reduce((sum,x)=>({normal:sum.normal+normalCentsOf(x),overtime:sum.overtime+overtimeCentsOf(x)}),{normal:0,overtime:0})}
 function monthPrimeTotals(date){return primeTotals(Object.entries(records).filter(([day])=>day.startsWith(monthPrefix(date))).flatMap(([,arr])=>Array.isArray(arr)?arr:[]))}
-function readShift(){const start=document.getElementById("shiftStart").value,end=document.getElementById("shiftEnd").value;if(minuteOf(start)===null||minuteOf(end)===null||start===end)throw Error("Vardiya için geçerli ve farklı başlangıç/bitiş saatleri gir.");return {start,end}}
+function readShift(){
+  const start=document.getElementById("shiftStart").value,minutes=minuteOf(start);
+  if(minutes===null)throw Error("Geçerli bir vardiya başlangıç saati gir.");
+  const endMinutes=minutes+540,end=timeAt(endMinutes).slice(0,5);
+  document.getElementById("shiftEnd").value=timeAt(endMinutes);
+  return {start,end};
+}
 function saveShift(){
-  try{const shift=readShift(),next={...shifts,[keyOf(selected)]:shift};localStorage.setItem(SHIFT_KEY,JSON.stringify(next));shifts=next;document.getElementById("shiftStatus").textContent="Vardiya kaydedildi. Saat eklerken veya düzenlerken uygulanır."}
+  try{const shift=readShift(),next={...shifts,[keyOf(selected)]:{start:shift.start}};localStorage.setItem(SHIFT_KEY,JSON.stringify(next));shifts=next;document.getElementById("shiftStatus").textContent="Vardiya kaydedildi. Saat eklerken veya düzenlerken uygulanır."}
   catch(error){document.getElementById("shiftStatus").textContent=error.message}
 }
 function previewCare(){
@@ -246,7 +252,7 @@ function render(){
   renderTips();
   if(shiftRenderedDay!==keyOf(selected)){
     const shift=shifts[keyOf(selected)]||{start:"08:00",end:"17:00"};
-    document.getElementById("shiftStart").value=shift.start;document.getElementById("shiftEnd").value=shift.end;
+    document.getElementById("shiftStart").value=shift.start;readShift();
     document.getElementById("shiftStatus").textContent="Vardiya, saat eklerken veya düzenlerken kullanılır.";
     shiftRenderedDay=keyOf(selected);
   }
@@ -284,7 +290,8 @@ function render(){
   });
 }
 document.getElementById("shiftStart").onchange=saveShift;
-document.getElementById("shiftEnd").onchange=saveShift;
+document.getElementById("shiftStart").oninput=()=>{try{readShift()}catch{document.getElementById("shiftEnd").value="—"}};
+
 document.getElementById("careStart").oninput=previewCare;
 document.getElementById("careSave").onclick=commitCare;
 function cancelCare(){pendingCare=null;document.getElementById("careDialog").close()}
