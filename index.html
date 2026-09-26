@@ -80,11 +80,14 @@
     .tip-preview{margin:10px 0}
     .tip-preview b{color:#b9e7ce}
     .shift-panel{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:14px;margin:12px 0}
-    .shift-fields{display:flex;gap:12px;margin-top:8px}.shift-fields label{flex:1;font-size:12px;color:var(--muted)}
+    .shift-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:8px}.shift-fields label{display:block;min-width:0;font-size:12px;line-height:1.5;overflow-wrap:anywhere;color:var(--muted)}
     .shift-fields input{display:block;width:100%;min-width:0;background:var(--card2);color:var(--text);border:1px solid var(--line);padding:10px;border-radius:10px;font:inherit;font-size:16px;margin-top:6px}
     .shift-note{font-size:12px;line-height:1.5;color:var(--muted);margin:10px 0 0}
     .overtime-card{border-color:#46506a}.prime-breakdown{font-size:12px;line-height:1.6;color:var(--muted);margin-top:5px}
     .care-edit{margin-top:8px;padding:8px 12px;min-height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+    .shift-fields input{max-width:100%;box-sizing:border-box}
+    #careDialog .shift-fields{grid-template-columns:minmax(0,1fr)}
+    @media(max-width:420px){.shift-fields{grid-template-columns:minmax(0,1fr);gap:14px}}
   </style>
 </head>
 <body>
@@ -137,7 +140,7 @@
     </div>
   </details>
   <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">15 slot boş</span></div><div id="list"></div>
-  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 14 · Normal vardiya 9 saat</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
+  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 15 · Normal vardiya 9 saat</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
 </div>
 <dialog class="calendar" id="careDialog" aria-labelledby="careTitle">
   <div class="calendar-head"><h2 id="careTitle">Bakım ekle</h2><button type="button" class="icon" id="careClose" aria-label="Kapat">×</button></div>
