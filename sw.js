@@ -1,4 +1,4 @@
-const CACHE="ersen-prim-v16";
+const CACHE="ersen-prim-v17";
 const ASSETS=["./","index.html","manifest.webmanifest"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil((async()=>{
@@ -8,8 +8,8 @@ self.addEventListener("activate",e=>e.waitUntil((async()=>{
   const clients=await self.clients.matchAll({type:"window"});
   await Promise.all(clients.map(async client=>{
     const url=new URL(client.url);
-    if(url.origin===self.location.origin&&url.pathname.startsWith(new URL(self.registration.scope).pathname)&&url.searchParams.get("appVersion")!=="16"){
-      url.searchParams.set("appVersion","16");
+    if(url.origin===self.location.origin&&url.pathname.startsWith(new URL(self.registration.scope).pathname)&&url.searchParams.get("appVersion")!=="17"){
+      url.searchParams.set("appVersion","17");
       await client.navigate(url.href).catch(()=>{});
     }
   }));
