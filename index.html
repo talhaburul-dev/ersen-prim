@@ -92,6 +92,10 @@
     .compliment{animation:compliment-in .65s ease-out both}
     @keyframes compliment-in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
     @media(prefers-reduced-motion:reduce){.compliment{animation:none}}
+    .tip-currencies[hidden]{display:none}
+    .tip-currencies button{font-size:22px;min-width:0}
+    .tip-totals>div{min-width:0}
+    .tip-totals .fx-total{font-size:18px;margin-top:6px}
   </style>
 </head>
 <body>
@@ -106,10 +110,15 @@
   <section class="tip-panel" aria-labelledby="tipTitle">
     <h2 id="tipTitle">Bahşiş</h2>
     <div class="tip-totals">
-      <div><div class="label" id="tipDayLabel">GÜNLÜK NET BAHŞİŞ</div><strong id="tipDayTotal">0 ₺</strong></div>
-      <div><div class="label" id="tipMonthLabel">AYLIK NET BAHŞİŞ</div><strong id="tipMonthTotal">0 ₺</strong></div>
+      <div><div class="label" id="tipDayLabel">GÜNLÜK NET BAHŞİŞ</div><strong id="tipDayTotal">0 ₺</strong><strong class="fx-total" id="tipDayUSD">0 $</strong><strong class="fx-total" id="tipDayEUR">0 €</strong></div>
+      <div><div class="label" id="tipMonthLabel">AYLIK NET BAHŞİŞ</div><strong id="tipMonthTotal">0 ₺</strong><strong class="fx-total" id="tipMonthUSD">0 $</strong><strong class="fx-total" id="tipMonthEUR">0 €</strong></div>
     </div>
     <div class="tip-method" role="group" aria-label="Bahşiş ödeme türü"><button type="button" id="tipCard" aria-pressed="false">Karttan bahşiş</button><button type="button" id="tipCash" aria-pressed="true">Nakit bahşiş</button></div>
+    <div class="tip-method tip-currencies" id="tipCurrencies" role="group" aria-label="Nakit bahşiş para birimi">
+      <button type="button" id="tipTRY" aria-label="Türk lirası" aria-pressed="true">₺</button>
+      <button type="button" id="tipUSD" aria-label="Dolar" aria-pressed="false">$</button>
+      <button type="button" id="tipEUR" aria-label="Euro" aria-pressed="false">€</button>
+    </div>
     <label class="label" for="tipAmount" id="tipAmountLabel">Bahşiş tutarı (₺)</label>
     <form class="tip-form" id="tipForm" novalidate>
       <input id="tipAmount" type="text" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="Örn. 100 veya 50,50" aria-describedby="tipStatus">
@@ -144,7 +153,7 @@
     </div>
   </details>
   <div class="section-head"><b>Eklenen bakımlar</b><span id="remain">15 slot boş</span></div><div id="list"></div>
-  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 16 · Normal vardiya 9 saat</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
+  <div class="footer-note"><button class="care-edit" type="button" id="refreshApp">Uygulamayı güncelle</button><p>Sürüm 17 · Nakit ₺ / $ / €</p>Her güne en fazla 15 bakım kaydı eklenebilir. Kayıtlar bu cihazda saklanır.</div>
 </div>
 <dialog class="calendar" id="careDialog" aria-labelledby="careTitle">
   <div class="calendar-head"><h2 id="careTitle">Bakım ekle</h2><button type="button" class="icon" id="careClose" aria-label="Kapat">×</button></div>
@@ -206,6 +215,8 @@ const TIP_KEY="ersenTipsV1";
 let tips=JSON.parse(localStorage.getItem(TIP_KEY)||"{}");
 let tipRenderedDay="";
 let selectedTipMethod="cash";
+let selectedTipCurrency="TRY";
+const currencySymbols={TRY:"₺",USD:"$",EUR:"€"};
 const SHIFT_KEY="ersenShiftsV1";
 let shifts=JSON.parse(localStorage.getItem(SHIFT_KEY)||"{}");
 let shiftRenderedDay="";
@@ -337,9 +348,11 @@ function cancelCare(){pendingCare=null;document.getElementById("careDialog").clo
 document.getElementById("careClose").onclick=cancelCare;
 document.getElementById("careCancel").onclick=cancelCare;
 document.getElementById("careDialog").oncancel=()=>{pendingCare=null};
-function tipMoney(cents){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:0}).format(cents/100)+" ₺"}
+function tipMoney(cents,currency="TRY"){return new Intl.NumberFormat("tr-TR",{maximumFractionDigits:0}).format(cents/100)+" "+currencySymbols[currency]}
+function currencyOf(tip){return tip.currency||"TRY"}
+function activeTipCurrency(){return selectedTipMethod==="card"?"TRY":selectedTipCurrency}
 function tipNet(tip){return tip.method==="card"?tip.netCents:tip.cents}
-function tipSum(arr){return (Array.isArray(arr)?arr:[]).reduce((sum,x)=>sum+tipNet(x),0)}
+function tipSum(arr,currency="TRY"){return (Array.isArray(arr)?arr:[]).reduce((sum,x)=>currencyOf(x)===currency?sum+tipNet(x):sum,0)}
 // Apply the 5-TL floor to the exact gross / 1.20 result before any kuruş rounding.
 function calculateTip(grossCents,method){
   const rawNetCents=method==="card"?Math.round(grossCents*5/6):grossCents;
@@ -349,10 +362,11 @@ function calculateTip(grossCents,method){
 }
 function renderTipPreview(){
   const card=selectedTipMethod==="card";
-  document.getElementById("tipAmountLabel").textContent=card?"Brüt kart bahşişi (₺)":"Bahşiş tutarı (₺)";
+  document.getElementById("tipCurrencies").hidden=card;
+  document.getElementById("tipAmountLabel").textContent=card?"Brüt kart bahşişi (₺)":"Nakit bahşiş tutarı ("+currencySymbols[selectedTipCurrency]+")";
   const preview=document.getElementById("tipPreview");preview.innerHTML="";
   const note=document.createElement("div");
-  note.textContent=card?"Kart hesabı: %20 KDV dahil varsayımıyla brüt ÷ 1,20; net alt 5 TL katına indirilir.":"Nakit bahşişin tamamı net toplama eklenir.";
+  note.textContent=card?"Kart hesabı: %20 KDV dahil varsayımıyla brüt ÷ 1,20; net alt 5 TL katına indirilir.":"Nakit bahşiş seçilen para biriminde ayrı toplanır.";
   preview.appendChild(note);
   const cents=parseTip(document.getElementById("tipAmount").value);
   if(card&&cents!==null){
@@ -363,7 +377,7 @@ function renderTipPreview(){
     preview.appendChild(values);preview.appendChild(net);
   }
 }
-function tipMonthSum(date){return Object.entries(tips).reduce((sum,[day,arr])=>day.startsWith(monthPrefix(date))?sum+tipSum(arr):sum,0)}
+function tipMonthSum(date,currency="TRY"){return Object.entries(tips).reduce((sum,[day,arr])=>day.startsWith(monthPrefix(date))?sum+tipSum(arr,currency):sum,0)}
 function parseTip(value){
   const text=value.trim().replace(",",".");
   if(!/^\d{1,7}(?:\.\d{1,2})?$/.test(text))return null;
@@ -394,11 +408,15 @@ function renderTips(){
   document.getElementById("tipMonthLabel").textContent=selected.toLocaleDateString("tr-TR",{month:"long",year:"numeric"}).toLocaleUpperCase("tr-TR")+" NET BAHŞİŞİ";
   document.getElementById("tipDayTotal").textContent=tipMoney(tipSum(arr));
   document.getElementById("tipMonthTotal").textContent=tipMoney(tipMonthSum(selected));
+  for(const currency of ["USD","EUR"]){
+    document.getElementById("tipDay"+currency).textContent=tipMoney(tipSum(arr,currency),currency);
+    document.getElementById("tipMonth"+currency).textContent=tipMoney(tipMonthSum(selected,currency),currency);
+  }
   const list=document.getElementById("tipList");list.innerHTML="";
   arr.forEach((tip,index)=>{
     const row=document.createElement("div");row.className="tip-entry";
     const info=document.createElement("div");
-    const amount=document.createElement("b");amount.textContent=tipMoney(tipNet(tip))+" net";
+    const amount=document.createElement("b");amount.textContent=tipMoney(tipNet(tip),currencyOf(tip))+" net";
     const time=document.createElement("span");time.className="time";time.textContent=tip.time;
     info.appendChild(amount);info.appendChild(time);
     const detail=document.createElement("div");detail.className="tip-breakdown";
@@ -407,7 +425,7 @@ function renderTips(){
       :tip.method==="cash"?"Nakit · Kesinti yok":"Eski kayıt · Tutar korundu";
     info.appendChild(detail);
     const del=document.createElement("button");del.type="button";del.className="del";del.textContent="×";
-    del.setAttribute("aria-label",tipMoney(tipNet(tip))+" net bahşişi sil");del.onclick=()=>removeTip(index);
+    del.setAttribute("aria-label",tipMoney(tipNet(tip),currencyOf(tip))+" net bahşişi sil");del.onclick=()=>removeTip(index);
     row.appendChild(info);row.appendChild(del);list.appendChild(row);
   });
   renderTipPreview();
@@ -416,11 +434,11 @@ document.getElementById("tipForm").onsubmit=event=>{
   event.preventDefault();
   const input=document.getElementById("tipAmount"),cents=parseTip(input.value);
   if(cents===null){document.getElementById("tipStatus").textContent="Sıfırdan büyük bir tutar gir. Örnek: 100 veya 50,50.";return}
-  const key=keyOf(selected),entry={...calculateTip(cents,selectedTipMethod==="card"?"card":"cash"),time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})};
+  const key=keyOf(selected),entry={...calculateTip(cents,selectedTipMethod==="card"?"card":"cash"),currency:activeTipCurrency(),time:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})};
   if(saveTips({...tips,[key]:[...(tips[key]||[]),entry]})){
     input.value="";
     renderTipPreview();
-    document.getElementById("tipStatus").textContent=tipMoney(entry.netCents)+" net bahşiş eklendi.";
+    document.getElementById("tipStatus").textContent=tipMoney(entry.netCents,entry.currency)+" net bahşiş eklendi.";
   }
 };
 document.getElementById("tipAmount").oninput=renderTipPreview;
@@ -430,6 +448,14 @@ function setTipMethod(method){
   document.getElementById("tipCash").setAttribute("aria-pressed",String(selectedTipMethod==="cash"));
   renderTipPreview();
 }
+function setTipCurrency(currency){
+  if(!Object.hasOwn(currencySymbols,currency))return;
+  selectedTipCurrency=currency;
+  document.getElementById("tipAmount").value="";
+  for(const code of ["TRY","USD","EUR"])document.getElementById("tip"+code).setAttribute("aria-pressed",String(code===currency));
+  renderTipPreview();
+}
+for(const currency of ["TRY","USD","EUR"])document.getElementById("tip"+currency).onclick=()=>setTipCurrency(currency);
 document.getElementById("tipCard").onclick=()=>setTipMethod("card");
 document.getElementById("tipCash").onclick=()=>setTipMethod("cash");
 const baseButtons=Array.from(document.querySelectorAll(".prime-btn"));
